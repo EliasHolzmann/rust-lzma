@@ -25,51 +25,48 @@
 //! ```
 
 pub enum Direction {
-	Compress,
-	Decompress,
+    Compress,
+    Decompress,
 }
 
-mod lzma_sys;
+pub mod error;
 mod lzma_stream_wrapper;
+mod lzma_sys;
 pub mod reader;
 pub mod writer;
-pub mod error;
 
-use std::io::Read;
-pub use reader::LzmaReader;
-pub use writer::LzmaWriter;
 pub use error::LzmaError;
-
+pub use reader::LzmaReader;
+use std::io::Read;
+pub use writer::LzmaWriter;
 
 pub const EXTREME_PRESET: u32 = (1 << 31);
-
 
 /// Compress `buf` and return the result.
 ///
 /// preset is [0-9] and corresponds to xz's presets.
 /// Binary-or with EXTREME_PRESET for --extreme (e.g. 9 | EXTREME_PRESET).
 pub fn compress(buf: &[u8], preset: u32) -> Result<Vec<u8>, LzmaError> {
-	let mut output: Vec<u8> = Vec::new();
+    let mut output: Vec<u8> = Vec::new();
 
-	{
-		let mut reader = LzmaReader::new_compressor(buf, preset)?;
+    {
+        let mut reader = LzmaReader::new_compressor(buf, preset)?;
 
-		reader.read_to_end(&mut output)?;
-	}
+        reader.read_to_end(&mut output)?;
+    }
 
-	Ok(output)
+    Ok(output)
 }
-
 
 /// Decompress `buf` and return the result.
 pub fn decompress(buf: &[u8]) -> Result<Vec<u8>, LzmaError> {
-	let mut output: Vec<u8> = Vec::new();
+    let mut output: Vec<u8> = Vec::new();
 
-	{
-		let mut reader = LzmaReader::new_decompressor(buf)?;
+    {
+        let mut reader = LzmaReader::new_decompressor(buf)?;
 
-		reader.read_to_end(&mut output)?;
-	}
+        reader.read_to_end(&mut output)?;
+    }
 
-	Ok(output)
+    Ok(output)
 }
