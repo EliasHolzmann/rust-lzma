@@ -52,19 +52,36 @@ fn main() {
             .expect("Wait failed");
         assert!(decompress_result.success());
 
+        let patch_result = Command::new("patch")
+            .current_dir(                source_dir.clone().join("xz-5.2.5"),
+        )
+            .arg("-p1")
+            .arg("-i")
+            .arg(&std::path::Path::new(
+                &std::env::var_os("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"),
+            ).join("signal_handling.patch"))
+            .spawn()
+            .expect("Spawn failed")
+            .wait()
+            .expect("Wait failed");
+        assert!(patch_result.success());
+
         let configure_result = Command::new("sh")
             .current_dir(
                 source_dir.clone().join("xz-5.2.5"),
             )
-            .env("CC", dbg!(compiler_tool.path()))
+            .env("CC", dbg!("/opt/wasi-sdk/bin/clang --sysroot=/opt/wasi-sdk/share/wasi-sysroot"))
             .env_remove("CROSS_COMPILE")
             .arg("./configure")
+            // this is an invalid target triple, but it prevents configure from trying to execute binaries it creates. Configure doesn't like the real target triple for some reason
+            .arg("--host").arg("none") 
             .arg("--disable-xz")
             .arg("--disable-xzdec")
             .arg("--disable-lzmadec")
             .arg("--disable-lzmainfo")
             .arg("--disable-scripts")
             .arg("--disable-lzma-links")
+            .arg("--disable-threads")
             .spawn()
             .expect("Spawn failed")
             .wait()
@@ -75,7 +92,7 @@ fn main() {
             .current_dir(
                 source_dir.join("xz-5.2.5"),
             )
-            .arg(format!("CFLAGS={}", dbg!(compiler_tool.cflags_env().into_string().unwrap())))
+            .arg(format!("CFLAGS={} -D_WASI_EMULATED_SIGNAL -Wl,wasi-emulated-signal", dbg!(compiler_tool.cflags_env().into_string().unwrap())))
             .spawn()
             .expect("Spawn failed")
             .wait()
